@@ -1,0 +1,153 @@
+{# tareas/templates/registration/login.html #}
+{% extends 'base.html' %} {# Sigue extendiendo base.html para heredar la navegación y el footer #}
+{% load static %}
+
+{% block title %}Iniciar Sesión{% endblock %}
+
+{% block extra_head %}
+{# Puedes añadir estilos específicos para el login aquí si no los quieres en style.css #}
+<style>
+    body {
+        background: linear-gradient(to right, #6a11cb 0%, #2575fc 100%); /* Degradado azul-púrpura */
+        display: flex; /* Para centrar el contenido vertical y horizontalmente */
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh; /* Ocupa toda la altura de la ventana */
+        margin: 0;
+        font-family: Arial, sans-serif;
+    }
+    .main-content { /* Sobrescribe el estilo de main-content de base.html para el login */
+        background-color: #ffffff;
+        padding: 40px;
+        border-radius: 10px;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2); /* Sombra suave */
+        width: 100%;
+        max-width: 400px; /* Ancho máximo para el formulario de login */
+        text-align: center;
+        /* Para asegurar que no haya un padding extra del div main-content si no lo quieres */
+        margin-top: 0; 
+        margin-bottom: 0;
+        display: block; /* Asegura que se comporte como un bloque */
+    }
+    .login-container h2 {
+        color: #333;
+        margin-bottom: 25px;
+        font-size: 2em;
+        position: relative;
+        padding-bottom: 10px;
+    }
+    .login-container h2::after {
+        content: '';
+        position: absolute;
+        left: 50%;
+        bottom: 0;
+        transform: translateX(-50%);
+        height: 3px;
+        width: 60px;
+        background-color: #2575fc; /* Color de la línea debajo del título */
+        border-radius: 5px;
+    }
+    .login-container label {
+        display: block;
+        text-align: left;
+        margin-bottom: 8px;
+        font-weight: bold;
+        color: #555;
+    }
+    .login-container input[type="text"],
+    .login-container input[type="password"] {
+        width: calc(100% - 20px); /* Ajusta padding */
+        padding: 12px 10px;
+        margin-bottom: 20px;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        font-size: 1em;
+        transition: border-color 0.3s;
+    }
+    .login-container input[type="text"]:focus,
+    .login-container input[type="password"]:focus {
+        border-color: #6a11cb; /* Resalta al enfocar */
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(106, 17, 203, 0.2);
+    }
+    .login-container .btn-primary {
+        background-color: #2575fc; /* Color de botón principal */
+        color: white;
+        padding: 12px 25px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 1.1em;
+        transition: background-color 0.3s ease, transform 0.2s ease;
+        width: 100%;
+    }
+    .login-container .btn-primary:hover {
+        background-color: #6a11cb; /* Cambio de color al pasar el ratón */
+        transform: translateY(-2px); /* Pequeño efecto de elevación */
+    }
+    .login-container .errorlist {
+        list-style: none;
+        padding: 0;
+        margin-top: -15px;
+        margin-bottom: 15px;
+        color: #e74c3c; /* Rojo para errores */
+        font-size: 0.9em;
+        text-align: left;
+    }
+    .login-container p {
+        margin-top: 20px;
+        font-size: 0.9em;
+        color: #777;
+    }
+    .login-container p a {
+        color: #2575fc;
+        text-decoration: none;
+        font-weight: bold;
+    }
+    .login-container p a:hover {
+        text-decoration: underline;
+    }
+
+    /* Ocultar navegación y footer en la página de login si no los quieres */
+    nav, footer {
+        display: none;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="login-container">
+    <h2>Iniciar Sesión</h2>
+    <form method="post">
+        {% csrf_token %}
+        
+        {# Renderiza los errores del formulario si existen #}
+        {% if form.errors %}
+            <ul class="errorlist">
+                {% for field in form %}
+                    {% for error in field.errors %}
+                        <li>{{ error }}</li>
+                    {% endfor %}
+                {% endfor %}
+                {% for error in form.non_field_errors %}
+                    <li>{{ error }}</li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+
+        {# Renderiza los campos del formulario manualmente para un mejor control del diseño #}
+        <p>
+            <label for="{{ form.username.id_for_label }}">Usuario:</label>
+            {{ form.username }}
+        </p>
+        <p>
+            <label for="{{ form.password.id_for_label }}">Contraseña:</label>
+            {{ form.password }}
+        </p>
+        
+        <button type="submit" class="btn btn-primary">Iniciar Sesión</button>
+    </form>
+    <p>¿No tienes cuenta? <a href="#">Regístrate aquí</a></p> {# Cambiar a tu URL de registro si tienes una #}
+    <p>¿Olvidaste tu contraseña? <a href="#">Recuperar Contraseña</a></p> {# Cambiar a tu URL de recuperación si tienes una #}
+</div>
+{% endblock %}

@@ -1,0 +1,219 @@
+{% extends 'base.html' %} {# O 'base.html' si ese es el nombre correcto #}
+
+{% load static %}
+
+{% block extra_head %}
+    <link rel="stylesheet" href="{% static 'css/form_styles.css' %}">
+    <link rel="stylesheet" href="{% static 'css/buttons.css' %}">
+    <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+{% endblock %}
+
+{% block content %}
+<div class="form-container">
+    <h1>{% if is_new_task %}Crear Nueva Tarea{% else %}Editar Tarea #{{ tarea.pk }}{% endif %}</h1>
+
+    {% if messages %}
+        <ul class="messages">
+            {% for message in messages %}
+                <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+
+    <form method="post">
+        {% csrf_token %}
+
+        <fieldset class="form-section">
+            <legend>Datos Principales de la Tarea</legend>
+            <div class="form-grid">
+                {# Renderizar campos principales del formulario #}
+                {# El campo 'asunto' se renderizará aquí automáticamente, ya que está en TareaForm.Meta.fields #}
+                {% for field in form %}
+                    {% if field.name != 'DELETE' and field.name != 'id' %}
+                        <div class="form-group {% if field.errors %}is-invalid{% endif %}">
+                            {{ field.label_tag }}
+                            {{ field }}
+                            {% if field.help_text %}
+                                <small class="form-text text-muted">{{ field.help_text }}</small>
+                            {% endif %}
+                            {% if field.errors %}
+                                <ul class="errorlist">
+                                    {% for error in field.errors %}
+                                        <li>{{ error }}</li>
+                                    {% endfor %}
+                                </ul>
+                            {% endif %}
+                        </div>
+                    {% endif %}
+                {% endfor %}
+            </div>
+        </fieldset>
+
+        <fieldset class="form-section">
+            <legend>Notas de Gestión</legend>
+            <div id="nota-formset-container">
+                {{ nota_formset.management_form }}
+                {% for formset_form in nota_formset %}
+                    <div class="formset-item">
+                        <p>Nota de Gestión #{{ forloop.counter }}</p>
+                        {# Renderizar campos ocultos (id, orden, etc.) para cada formulario en el formset #}
+                        {% for hidden_field in formset_form.hidden_fields %}
+                            {{ hidden_field }}
+                        {% endfor %}
+
+                        {% for field in formset_form.visible_fields %}
+                            {# Excluir el campo DELETE visible si no quieres que se renderice automáticamente aquí #}
+                            {% if field.name != 'DELETE' %}
+                                <div class="form-group full-width {% if field.errors %}is-invalid{% endif %}">
+                                    {{ field.label_tag }}
+                                    {{ field }}
+                                    {% if field.help_text %}
+                                        <small class="form-text text-muted">{{ field.help_text }}</small>
+                                    {% endif %}
+                                    {% if field.errors %}
+                                        <ul class="errorlist">
+                                            {% for error in field.errors %}
+                                                <li>{{ error }}</li>
+                                            {% endfor %}
+                                        </ul>
+                                    {% endif %}
+                                </div>
+                            {% endif %}
+                        {% endfor %}
+
+                        {# Checkbox visible de eliminar nota (solo si la nota ya existe y necesitas mostrarlo) #}
+                        {# El campo DELETE ya fue renderizado como oculto, ahora solo mostramos el checkbox si queremos controlarlo #}
+                        {% if formset_form.instance.pk %}
+                            <div class="form-check-group">
+                                {{ formset_form.DELETE }}
+                                <label for="{{ formset_form.DELETE.id_for_label }}">Eliminar nota</label>
+                            </div>
+                        {% endif %}
+                    </div>
+                {% empty %}
+                    <p class="no-items">No hay notas de gestión registradas.</p>
+                {% endfor %}
+            </div>
+            <button type="button" class="btn btn-primary btn-add-formset" id="add-nota">Agregar más Notas de Gestión</button>
+        </fieldset>
+
+        <div class="form-actions">
+            <button type="submit" class="btn btn-success">Guardar Tarea</button>
+            <a href="{% url 'lista_tareas' %}" class="btn btn-secondary">Cancelar</a>
+        </div>
+    </form>
+</div>
+
+{# NEW: Select2 JS #}
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+<script>
+    $(function() {
+        // Inicializar datepickers (sin el botón de imagen)
+        $(".datepicker-input").datepicker({
+            dateFormat: 'dd/mm/yy',
+            changeMonth: true,
+            changeYear: true,
+            showOn: "focus", // Muestra el calendario al enfocar el input
+            onClose: function(selectedDate) {
+                $(this).val(selectedDate);
+            }
+        });
+
+        // Función para añadir un nuevo formulario al formset
+        function addForm(prefix, containerId, emptyFormHtml) {
+            const container = $(containerId);
+            const totalForms = $(`#id_${prefix}-TOTAL_FORMS`);
+            const currentForms = parseInt(totalForms.val());
+
+            const newFormHtml = emptyFormHtml.replace(/__prefix__/g, currentForms);
+            const newFormElement = $(newFormHtml);
+
+            // Re-inicializar datepickers en el nuevo formulario si existen
+            newFormElement.find(".datepicker-input").each(function() {
+                $(this).removeClass('hasDatepicker').removeData('datepicker').unbind();
+                $(this).datepicker({
+                    dateFormat: 'dd/mm/yy',
+                    changeMonth: true,
+                    changeYear: true,
+                    showOn: "focus",
+                    onClose: function(selectedDate) {
+                        $(this).val(selectedDate);
+                    }
+                });
+            });
+
+            // Re-inicializar Select2 en los nuevos select fields
+            newFormElement.find('.select2-enabled').each(function() {
+                $(this).select2({
+                    placeholder: "Selecciona una opción",
+                    allowClear: true
+                });
+            });
+
+            container.append(newFormElement);
+            totalForms.val(currentForms + 1);
+
+            // Actualizar el número de la nota
+            newFormElement.find('p').text(`Nota de Gestión #${currentForms + 1}`);
+
+            // Ocultar el mensaje "No hay notas de gestión registradas." si estaba visible
+            container.find('.no-items').hide();
+        }
+
+        // Obtener el HTML del formulario vacío para Nota de Gestión
+        const emptyNotaFormHtml = `
+            <div class="formset-item">
+                <p>Nota de Gestión #</p>
+                {# Renderizar campos ocultos para el formulario vacío del formset #}
+                {% for hidden_field in nota_formset.empty_form.hidden_fields %}
+                    {{ hidden_field }}
+                {% endfor %}
+                {% for field in nota_formset.empty_form.visible_fields %}
+                    {% if field.name != 'DELETE' %}
+                        <div class="form-group full-width">
+                            {{ field.label_tag }}
+                            {{ field }}
+                            {% if field.help_text %}<small class="form-text text-muted">{{ field.help_text }}</small>{% endif %}
+                        </div>
+                    {% endif %}
+                {% endfor %}
+                <div class="form-check-group">
+                    {{ nota_formset.empty_form.DELETE }}
+                    <label for="{{ nota_formset.empty_form.DELETE.id_for_label }}">Eliminar nota</label>
+                </div>
+            </div>
+        `;
+
+        // Event listener para el botón de añadir nota
+        $('#add-nota').click(function() {
+            addForm('nota', '#nota-formset-container', emptyNotaFormHtml);
+        });
+
+        // Asegurarse de que los campos datepicker existentes se inicialicen al cargar la página
+        $(".datepicker-input").each(function() {
+            if (!$(this).hasClass('hasDatepicker')) {
+                $(this).datepicker({
+                    dateFormat: 'dd/mm/yy',
+                    changeMonth: true,
+                    changeYear: true,
+                    showOn: "focus",
+                    onClose: function(selectedDate) {
+                        $(this).val(selectedDate);
+                    }
+                });
+            }
+        });
+
+        // Inicializar Select2 para campos existentes al cargar la página
+        $('#id_tomador, #id_tipo_operacion, #id_aseguradora, #id_ramo, #id_propietario, #id_responsable, #id_estado').select2({
+            placeholder: "Selecciona una opción",
+            allowClear: true
+        });
+
+    });
+</script>
+{% endblock %}

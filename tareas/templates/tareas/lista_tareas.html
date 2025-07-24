@@ -1,0 +1,517 @@
+{# tareas/templates/tareas/lista_tareas.html #}
+{% extends "base.html" %}
+{% load static %}
+
+{% block extra_head %}
+    {# Estilos para la columna fija y el botón de copiar #}
+    <style>
+        .task-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .task-table th, .task-table td {
+            padding: 8px;
+            border: 1px solid #ddd;
+            text-align: left;
+            white-space: nowrap; /* Evita que el texto se envuelva */
+        }
+
+        .task-table th {
+            background-color: #007bff;
+            color: white; /* Color del texto para los encabezados */
+            position: sticky;
+            top: 0; /* Fija los encabezados al hacer scroll vertical */
+            z-index: 10; /* Asegura que estén por encima del contenido */
+        }
+
+        /* Estilos para la columna de acciones fija */
+        .task-table th:last-child,
+        .task-table td:last-child {
+            position: sticky;
+            right: 0; /* Fija la columna a la derecha */
+            background-color: #f9f9f9; /* Color de fondo para que se vea bien al hacer scroll */
+            z-index: 11; /* Asegura que esté por encima de otras columnas y encabezados */
+            box-shadow: -2px 0 5px rgba(0,0,0,0.1); /* Sombra para destacarla */
+        }
+        .task-table th:last-child {
+            background-color: #007bff; /* Mismo color que otros encabezados */
+            color: white;
+        }
+
+        /* Estilos para el contenedor de la celda y el botón de copiar */
+        .copyable-cell {
+            position: relative;
+            display: flex; /* Usamos flexbox para alinear el contenido y el icono */
+            align-items: center;
+            justify-content: space-between; /* Espacio entre el texto y el icono */
+            padding-right: 25px; /* Espacio para el icono */
+            min-width: 50px; /* Asegura un ancho mínimo para celdas pequeñas */
+        }
+
+        .copy-icon {
+            position: absolute;
+            right: 5px; /* Posición del icono dentro de la celda */
+            top: 50%;
+            transform: translateY(-50%);
+            cursor: pointer;
+            font-size: 0.9em;
+            color: #888;
+            opacity: 0; /* Oculto por defecto */
+            transition: opacity 0.2s ease-in-out;
+        }
+
+        .copyable-cell:hover .copy-icon {
+            opacity: 1; /* Visible al pasar el mouse */
+        }
+
+        .copy-icon:active {
+            color: #007bff; /* Color al hacer clic */
+        }
+
+        /* Estilos para los iconos de acción */
+        .action-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 24px;
+            height: 24px;
+            font-size: 1.1em;
+            text-decoration: none;
+            color: #007bff;
+            border: 1px solid #007bff;
+            border-radius: 4px;
+            margin-right: 5px;
+            transition: background-color 0.2s, color 0.2s;
+        }
+
+        .action-icon:hover {
+            background-color: #007bff;
+            color: white;
+        }
+
+        .action-icon.disabled {
+            color: #6c757d;
+            border-color: #6c757d;
+            cursor: not-allowed;
+            background-color: #e9ecef;
+        }
+
+        .complete-checkbox {
+            margin-left: 5px;
+            transform: scale(1.2); /* Hacer el checkbox un poco más grande */
+        }
+
+        /* Estilos para el modal */
+        .modal {
+            display: none; /* Oculto por defecto */
+            position: fixed; /* Posición fija para cubrir toda la pantalla */
+            z-index: 1000; /* Z-index alto para estar por encima de todo */
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto; /* Habilitar scroll si el contenido es muy grande */
+            background-color: rgba(0,0,0,0.4); /* Fondo semi-transparente oscuro */
+            justify-content: center; /* Centrar horizontalmente el contenido del modal */
+            align-items: center; /* Centrar verticalmente el contenido del modal */
+        }
+
+        .modal-content {
+            background-color: #fefefe;
+            margin: auto; /* Margen automático para centrar en navegadores antiguos */
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%; /* Ancho del modal */
+            max-width: 600px; /* Ancho máximo para el modal */
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            position: relative;
+            display: flex; /* Para organizar el contenido y el botón de cerrar */
+            flex-direction: column;
+        }
+
+        .close-button {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            position: absolute; /* Posicionamiento absoluto dentro del modal-content */
+            top: 10px;
+            right: 15px;
+        }
+
+        .close-button:hover,
+        .close-button:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        .modal-title {
+            text-align: center;
+            margin-bottom: 20px;
+            color: #333;
+        }
+        .modal-form {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        .modal-form label {
+            font-weight: bold;
+            margin-bottom: 5px;
+            display: block;
+        }
+        .modal-form textarea,
+        .modal-form input[type="text"] {
+            width: calc(100% - 20px);
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 1em;
+        }
+        .modal-form button[type="submit"] {
+            background-color: #28a745;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1.1em;
+            align-self: flex-end; /* Alinea el botón a la derecha */
+        }
+        .modal-form button[type="submit"]:hover {
+            background-color: #218838;
+        }
+        .modal-errors {
+            color: red;
+            margin-bottom: 10px;
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1>Lista de Tareas</h1>
+
+    <div class="search-and-create-section">
+        {# Buscador #}
+        <form method="GET" action="{% url 'lista_tareas' %}" class="search-form">
+            <input type="text" name="q" placeholder="Buscar por cualquier campo..." value="{{ query }}" class="search-input">
+            <button type="submit" class="btn btn-primary search-button">Buscar</button>
+        </form>
+
+        <a href="{% url 'nueva_tarea' %}" class="btn btn-primary">➕ Crear Nueva Tarea</a>
+    </div>
+
+    {% if page_obj.object_list %}
+        <div class="table-responsive">
+            <table class="task-table">
+                <thead>
+                    <tr>
+                        <th>ID Tarea</th>
+                        <th>Asunto</th>
+                        <th>Fecha Solicitud</th>
+                        <th>Tomador</th>
+                        <th>Tipo Operación</th>
+                        <th>Aseguradora</th>
+                        <th>Ramo</th>
+                        <th>No. Póliza</th>
+                        <th>No. Radicado Cía</th>
+                        <th>No. AUS Ticket</th>
+                        <th>Propietario</th>
+                        <th>Responsable</th>
+                        <th>Estado</th>
+                        <th>Fecha Envío Cliente</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for tarea in page_obj %}
+                    <tr id="tarea-{{ tarea.pk }}">
+                        <td><div class="copyable-cell"><a href="{% url 'detalle_tarea' tarea.pk %}" title="Ver Detalle de Tarea {{ tarea.pk }}">#{{ tarea.pk }}</a><span class="copy-icon" title="Copiar">📋</span></div></td>
+                        <td><div class="copyable-cell">{{ tarea.asunto|truncatechars:50 }}<span class="copy-icon" title="Copiar">📋</span></div></td>
+                        <td><div class="copyable-cell">{{ tarea.fecha_solicitud_cliente|date:"d/m/Y" }}<span class="copy-icon" title="Copiar">📋</span></div></td>
+                        <td><div class="copyable-cell">{{ tarea.tomador.nombre|default:"N/A" }}<span class="copy-icon" title="Copiar">📋</span></div></td>
+                        <td><div class="copyable-cell">{{ tarea.tipo_operacion.nombre|default:"N/A" }}<span class="copy-icon" title="Copiar">📋</span></div></td>
+                        <td><div class="copyable-cell">{{ tarea.aseguradora.nombre|default:"N/A" }}<span class="copy-icon" title="Copiar">📋</span></div></td>
+                        <td><div class="copyable-cell">{{ tarea.ramo.nombre|default:"N/A" }}<span class="copy-icon" title="Copiar">📋</span></div></td>
+                        <td><div class="copyable-cell">{{ tarea.numero_poliza|default:"N/A" }}<span class="copy-icon" title="Copiar">📋</span></div></td>
+                        <td><div class="copyable-cell">{{ tarea.numero_radicado_cia|default:"N/A" }}<span class="copy-icon" title="Copiar">📋</span></div></td>
+                        <td><div class="copyable-cell">{{ tarea.numero_aus_ticket|default:"N/A" }}<span class="copy-icon" title="Copiar">📋</span></div></td>
+                        <td><div class="copyable-cell">{{ tarea.propietario.get_full_name|default:tarea.propietario.username|default:"N/A" }}<span class="copy-icon" title="Copiar">📋</span></div></td>
+                        <td><div class="copyable-cell">{{ tarea.responsable.get_full_name|default:tarea.responsable.username|default:"N/A" }}<span class="copy-icon" title="Copiar">📋</span></div></td>
+                        <td class="task-estado"><div class="copyable-cell">{{ tarea.get_estado_display }}<span class="copy-icon" title="Copiar">📋</span></div></td>
+                        <td class="task-fecha-envio"><div class="copyable-cell">{{ tarea.fecha_envio_cliente|date:"d/m/Y"|default:"N/A" }}<span class="copy-icon" title="Copiar">📋</span></div></td>
+                        <td class="task-actions">
+                            <a href="{% url 'detalle_tarea' tarea.pk %}" class="action-icon" title="Ver Detalle">👁️</a>
+                            {# CAMBIO AQUÍ: Botón para agregar nota que abre el modal #}
+                            <a href="#" class="action-icon open-modal-btn" data-tarea-id="{{ tarea.pk }}" data-url="{% url 'add_nota_to_tarea' tarea.pk %}" title="Agregar Nota">📝</a>
+                            {# Deshabilitar o ocultar el botón de editar si la tarea está completada #}
+                            {% if tarea.estado != 'Completada' %}
+                                <a href="{% url 'editar_tarea' tarea.pk %}" class="action-icon" title="Editar Tarea">✏️</a>
+                            {% else %}
+                                <span class="action-icon disabled" title="Tarea Completada - No editable">🚫</span>
+                            {% endif %}
+                            <input type="checkbox" class="complete-checkbox" data-tarea-id="{{ tarea.pk }}"
+                                   {% if tarea.estado == 'Completada' %}checked{% endif %}
+                                   title="Marcar como Completada/Incompleta">
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        {# Controles de paginación #}
+        <div class="pagination">
+            <span class="step-links">
+                {% if page_obj.has_previous %}
+                    <a href="?page=1&q={{ query }}" class="btn btn-secondary">&laquo; primera</a>
+                    <a href="?page={{ page_obj.previous_page_number }}&q={{ query }}" class="btn btn-secondary">anterior</a>
+                {% endif %}
+
+                <span class="current">
+                    Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}.
+                </span>
+
+                {% if page_obj.has_next %}
+                    <a href="?page={{ page_obj.next_page_number }}&q={{ query }}" class="btn btn-secondary">siguiente</a>
+                    <a href="?page={{ page_obj.paginator.num_pages }}&q={{ query }}" class="btn btn-secondary">última &raquo;</a>
+                {% endif %}
+            </span>
+        </div>
+
+    {% else %}
+        <p class="no-tasks">No hay tareas disponibles.</p>
+    {% endif %}
+</div>
+
+{# Estructura del Modal #}
+<div id="addNoteModal" class="modal">
+    <div class="modal-content">
+        <span class="close-button">&times;</span>
+        <h2 class="modal-title">Agregar Nota</h2>
+        <div id="modalFormContent">
+            {# Aquí se cargará el formulario de nota vía AJAX #}
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Lógica para el checkbox de completada
+        document.querySelectorAll('.complete-checkbox').forEach(checkbox => {
+            checkbox.addEventListener('change', function() {
+                const tareaId = this.dataset.tareaId;
+                const isChecked = this.checked;
+                const row = document.getElementById(`tarea-${tareaId}`);
+                const estadoCell = row.querySelector('.task-estado .copyable-cell');
+                const fechaEnvioCell = row.querySelector('.task-fecha-envio .copyable-cell');
+                
+                const editLink = row.querySelector('a[title="Editar Tarea"]');
+                const addNoteLink = row.querySelector('a[title="Agregar Nota"]'); 
+                const disabledSpan = row.querySelector('.action-icon.disabled');
+
+                let confirmationMessage;
+                if (isChecked) {
+                    confirmationMessage = '¿Estás seguro de que quieres marcar esta tarea como COMPLETA? Una tarea completada no puede ser editada o archivada directamente.';
+                } else {
+                    confirmationMessage = '¿Estás seguro de que quieres desmarcar esta tarea como COMPLETA? Su estado cambiará a "En Proceso" y será editable/archivada de nuevo.';
+                }
+
+                if (confirm(confirmationMessage)) {
+                    fetch(`/tareas/${tareaId}/toggle_completada/`, { 
+                        method: 'POST',
+                        headers: {
+                            'X-CSRFToken': '{{ csrf_token }}',
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'success') {
+                            // Actualiza el texto del estado y la fecha de envío
+                            estadoCell.childNodes[0].nodeValue = data.new_estado; // Esto es más seguro para nodos de texto
+                            fechaEnvioCell.childNodes[0].nodeValue = data.fecha_envio_cliente;
+                            checkbox.checked = data.is_completada;
+
+                            // Manejo de visibilidad de botones de acción
+                            if (data.is_completada) {
+                                if (editLink) editLink.style.display = 'none';
+                                if (addNoteLink) addNoteLink.style.display = 'none'; 
+                                if (!disabledSpan) {
+                                    const actionsCell = row.querySelector('.task-actions');
+                                    const newDisabledSpan = document.createElement('span');
+                                    newDisabledSpan.className = 'action-icon disabled';
+                                    newDisabledSpan.title = 'Tarea Completada - No editable/archivada';
+                                    newDisabledSpan.textContent = '🚫';
+                                    actionsCell.insertBefore(newDisabledSpan, checkbox);
+                                }
+                            } else {
+                                if (editLink) editLink.style.display = 'inline-flex';
+                                if (addNoteLink) addNoteLink.style.display = 'inline-flex'; 
+                                if (disabledSpan) disabledSpan.remove();
+                            }
+                        } else {
+                            alert('Error al actualizar la tarea: ' + (data.message || 'Desconocido'));
+                            checkbox.checked = !isChecked; // Revierte el estado del checkbox
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('Error de conexión al actualizar la tarea.');
+                        checkbox.checked = !isChecked; // Revierte el estado del checkbox
+                    });
+                } else {
+                    checkbox.checked = !isChecked; // Si el usuario cancela, revierte el estado del checkbox
+                }
+            });
+        });
+
+        // Lógica para copiar al portapapeles
+        document.querySelectorAll('.copy-icon').forEach(icon => {
+            icon.addEventListener('click', function() {
+                const parentDiv = this.parentNode;
+                let textToCopy = '';
+
+                // Busca el primer nodo de texto o el primer elemento 'A'
+                for (const node of parentDiv.childNodes) {
+                    if (node.nodeType === Node.TEXT_NODE && node.textContent.trim().length > 0) {
+                        textToCopy = node.textContent.trim();
+                        break;
+                    } else if (node.nodeType === Node.ELEMENT_NODE && node.tagName === 'A') {
+                        textToCopy = node.textContent.trim();
+                        break;
+                    }
+                }
+
+                // Si el texto termina con '...', elimina los puntos suspensivos antes de copiar
+                if (textToCopy.endsWith('...')) {
+                    textToCopy = textToCopy.substring(0, textToCopy.length - 3);
+                }
+
+                navigator.clipboard.writeText(textToCopy)
+                    .then(() => {
+                        const originalTitle = this.title;
+                        this.title = '¡Copiado!';
+                        setTimeout(() => {
+                            this.title = originalTitle;
+                        }, 1500);
+                    })
+                    .catch(err => {
+                        console.error('Error al copiar: ', err);
+                        alert('Error al copiar el texto.');
+                    });
+            });
+        });
+
+        // Lógica para el Modal de Agregar Nota
+        const modal = document.getElementById('addNoteModal');
+        const closeButton = document.querySelector('.close-button');
+        const modalFormContent = document.getElementById('modalFormContent');
+        let currentTareaId = null; // Para almacenar el ID de la tarea actual
+
+        // Función para abrir el modal y cargar el formulario
+        document.querySelectorAll('.open-modal-btn').forEach(button => {
+            button.addEventListener('click', function(event) {
+                event.preventDefault(); // Evita la navegación
+                currentTareaId = this.dataset.tareaId; // Guarda el ID de la tarea
+                const url = this.dataset.url; // Obtiene la URL para cargar el formulario
+
+                // Limpiar contenido previo y mostrar un loader (opcional)
+                modalFormContent.innerHTML = '<p>Cargando formulario...</p>';
+                modal.style.display = 'flex'; // Mostrar el modal
+
+                fetch(url, {
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest' // Indica que es una petición AJAX
+                    }
+                })
+                .then(response => response.text())
+                .then(html => {
+                    modalFormContent.innerHTML = html; // Inserta el formulario HTML
+                    attachFormSubmitListener(); // Adjunta el listener al formulario recién cargado
+                })
+                .catch(error => {
+                    console.error('Error al cargar el formulario del modal:', error);
+                    modalFormContent.innerHTML = '<p>Error al cargar el formulario. Inténtalo de nuevo.</p>';
+                });
+            });
+        });
+
+        // Función para cerrar el modal
+        closeButton.addEventListener('click', function() {
+            modal.style.display = 'none';
+            modalFormContent.innerHTML = ''; // Limpiar el contenido del formulario
+        });
+
+        // Cerrar el modal haciendo clic fuera de él
+        window.addEventListener('click', function(event) {
+            if (event.target == modal) {
+                modal.style.display = 'none';
+                modalFormContent.innerHTML = '';
+            }
+        });
+
+        // Función para adjuntar el listener de envío al formulario (se llama después de cargarlo por AJAX)
+        function attachFormSubmitListener() {
+            const form = modalFormContent.querySelector('form');
+            if (form) {
+                form.addEventListener('submit', function(event) {
+                    event.preventDefault(); // Evita el envío normal del formulario
+
+                    const formData = new FormData(form);
+                    // Asegurarse de que el token CSRF esté en FormData
+                    formData.append('csrfmiddlewaretoken', '{{ csrf_token }}'); 
+                    
+                    fetch(form.action, { // Usar form.action que ya tiene la URL de la tarea
+                        method: 'POST',
+                        body: formData,
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest' // Indica que es una petición AJAX
+                        }
+                    })
+                    .then(response => response.json()) // Esperamos un JSON de la vista
+                    .then(data => {
+                        if (data.status === 'success') {
+                            alert('Nota agregada con éxito!');
+                            modal.style.display = 'none'; // Cerrar el modal
+                            modalFormContent.innerHTML = ''; // Limpiar el contenido
+
+                            // Opcional: Actualizar las notas de la tarea sin recargar la página.
+                            // Esto es más complejo y requeriría una vista que retorne las notas de la tarea
+                            // o una estructura HTML predefinida para insertar la nueva nota.
+                            // Por ahora, solo se notificará al usuario.
+                            // Si deseas que la lista de notas se actualice, se necesitaría una petición AJAX
+                            // adicional a `detalle_tarea` o una vista específica para notas.
+                            // Para este ejemplo, solo mostraremos el éxito y cerraremos.
+                            console.log('Nueva nota:', data.nota_html); // Aquí podrías insertar la nota
+                            // Si tu detalle_tarea.html tiene un id para la lista de notas, podrías hacer:
+                            // const notesList = document.querySelector(`#tarea-${currentTareaId} .notes-list`);
+                            // if (notesList) {
+                            //     notesList.insertAdjacentHTML('beforeend', data.nota_html);
+                            // }
+
+                        } else if (data.status === 'error' && data.form_html) {
+                            // Si hay errores de validación, la vista devuelve el formulario con errores
+                            modalFormContent.innerHTML = data.form_html;
+                            attachFormSubmitListener(); // Volver a adjuntar el listener al nuevo formulario con errores
+                        } else {
+                            alert('Error desconocido al agregar la nota.');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error en la petición de envío del formulario:', error);
+                        alert('Error de conexión al agregar la nota.');
+                    });
+                });
+            }
+        }
+    });
+</script>
+{% endblock %}

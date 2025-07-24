@@ -1,0 +1,94 @@
+/* tareas/static/css/buttons.css */
+
+.btn {
+    padding: 12px 25px;
+    border: none;
+    border-radius: var(--border-radius);
+    font-size: 1em;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background-color 0.3s ease, box-shadow 0.3s ease;
+    text-decoration: none; /* Para los botones que son <a> */
+    display: inline-block; /* Para que <a> actúe como botón */
+    text-align: center;
+}
+
+.btn-primary {
+    background-color: var(--color-primary);
+    color: var(--color-white);
+}
+
+.btn-primary:hover {
+    background-color: var(--color-primary-dark);
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15);
+}
+
+.btn-success {
+    background-color: var(--color-secondary); /* Verde */
+    color: var(--color-white);
+}
+
+.btn-success:hover {
+    background-color: #28a745; /* Un verde un poco más oscuro */
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15);
+}
+
+.btn-secondary {
+    background-color: var(--color-dark-gray);
+    color: var(--color-white);
+}
+
+.btn-secondary:hover {
+    background-color: #5a6268;
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15);
+}
+
+.btn-danger {
+    background-color: var(--color-accent); /* Rojo */
+    color: var(--color-white);
+}
+
+.btn-danger:hover {
+    background-color: #c82333; /* Un rojo un poco más oscuro */
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15);
+}
+
+/* Si tienes un botón para archivar (eliminar lógicamente) */
+.btn-archive {
+    background-color: #ffc107; /* Amarillo */
+    color: #212529;
+}
+
+.btn-archive:hover {
+    background-color: #e0a800;
+}
+
+/* Botón flotante para añadir (ej. en lista de tareas) */
+.float-button {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    background-color: var(--color-primary);
+    color: var(--color-white);
+    border-radius: 50%;
+    width: 60px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2em;
+    box-shadow: var(--box-shadow);
+    z-index: 99;
+    text-decoration: none;
+    transition: background-color 0.3s ease, transform 0.3s ease;
+}
+
+.float-button:hover {
+    background-color: var(--color-primary-dark);
+    transform: translateY(-3px);
+}
+
+/* Icono dentro del botón flotante */
+.float-button i {
+    color: var(--color-white);
+}

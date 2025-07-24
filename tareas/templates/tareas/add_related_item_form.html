@@ -1,0 +1,47 @@
+{# tareas/templates/tareas/add_related_item_form.html #}
+
+{# Este es el contenido que se carga en el modal-body #}
+
+<div class="modal-header">
+    <h5 class="modal-title">Agregar Nota</h5> {# Puedes poner esto directamente aquí si siempre es "Agregar Nota" #}
+    <button type="button" class="btn-close close-button" aria-label="Cerrar"></button> {# Usar btn-close para Bootstrap 5 #}
+</div>
+
+<div class="modal-body">
+    <p class="mb-3">Añadiendo nota a la tarea #{{ tarea.pk }}: <strong>{{ tarea.asunto|default:"Sin Asunto" }}</strong></p>
+    
+    <form id="notaForm" method="post" action="{% url 'add_nota_to_tarea' tarea.pk %}">
+        {% csrf_token %}
+        
+        {# Mostrar errores generales del formulario si existen #}
+        {% if form.non_field_errors %}
+            <div class="alert alert-danger" role="alert">
+                {% for error in form.non_field_errors %}
+                    {{ error }}
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        <div class="mb-3"> {# Utiliza clases de Bootstrap para el espaciado #}
+            <label for="{{ form.nota_texto.id_for_label }}" class="form-label">Contenido de la nota:</label>
+            {{ form.nota_texto }} {# <--- ¡CAMBIO AQUÍ: de 'contenido' a 'nota_texto'! #}
+            {% if form.nota_texto.errors %}
+                <div class="invalid-feedback d-block"> {# Mostrar errores específicos del campo #}
+                    {% for error in form.nota_texto.errors %}
+                        {{ error }}
+                    {% endfor %}
+                </div>
+            {% endif %}
+            {% if form.nota_texto.help_text %}
+                <div class="form-text">{{ form.nota_texto.help_text }}</div>
+            {% endif %}
+        </div>
+
+        {# ELIMINADA la sección de "Tipo de Nota" ya que no es necesaria según tu solicitud #}
+        {# También puedes eliminar el bucle de 'form.errors' inicial si solo quieres los errores bajo cada campo #}
+
+        <div class="modal-footer d-flex justify-content-end"> {# Alinea el botón a la derecha #}
+            <button type="submit" class="btn btn-success" id="guardarNotaBtn">Guardar Nota</button>
+        </div>
+    </form>
+</div>

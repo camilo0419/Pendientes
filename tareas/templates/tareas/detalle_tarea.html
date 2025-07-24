@@ -1,0 +1,146 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="container">
+    <h1>Detalle de Tarea #{{ tarea.id }}</h1>
+
+    <div class="task-details-grid">
+        {# Primera fila de detalles importantes #}
+        <div class="detail-item"><strong>Fecha Solicitud Cliente:</strong> {{ tarea.fecha_solicitud_cliente|date:"d/m/Y" }}</div>
+        <div class="detail-item"><strong>Tipo Operación:</strong> {{ tarea.tipo_operacion.nombre|default:"N/A" }}</div>
+        <div class="detail-item"><strong>Aseguradora:</strong> {{ tarea.aseguradora.nombre|default:"N/A" }}</div>
+        
+        {# Segunda fila con información clave del cliente y póliza #}
+        <div class="detail-item"><strong>Tomador:</strong> {{ tarea.tomador.nombre|default:"N/A" }}</div>
+        <div class="detail-item"><strong>Ramo:</strong> {{ tarea.ramo.nombre|default:"N/A" }}</div>
+        <div class="detail-item"><strong>Número Póliza:</strong> {{ tarea.numero_poliza|default:"N/A" }}</div>
+        
+        {# Tercera fila con IDs internos y responsables #}
+        <div class="detail-item"><strong>Número Radicado Cía:</strong> {{ tarea.numero_radicado_cia|default:"N/A" }}</div>
+        <div class="detail-item"><strong>Número AUS Ticket:</strong> {{ tarea.numero_aus_ticket|default:"N/A" }}</div>
+        <div class="detail-item"><strong>Responsable:</strong> {{ tarea.responsable.get_full_name|default:"N/A" }}</div>
+        
+        {# Cuarta fila con estado, propietario y fechas #}
+        <div class="detail-item"><strong>Estado:</strong> {{ tarea.get_estado_display }}</div>
+        <div class="detail-item"><strong>Propietario:</strong> {{ tarea.propietario.get_full_name|default:"N/A" }}</div>
+        <div class="detail-item"><strong>Fecha Envío Cliente:</strong> {{ tarea.fecha_envio_cliente|date:"d/m/Y"|default:"N/A" }}</div>
+        
+        {# Última fila con fechas de auditoría #}
+        <div class="detail-item"><strong>Fecha Creación:</strong> {{ tarea.fecha_creacion|date:"d/m/Y H:i" }}</div>
+        <div class="detail-item"><strong>Última Actualización:</strong> {{ tarea.fecha_actualizacion|date:"d/m/Y H:i" }}</div>
+
+        {# NUEVO: Mostrar el campo Asunto directamente #}
+        <div class="detail-item full-width">
+            <strong>Asunto/Descripción de la Solicitud:</strong> 
+            <p>{{ tarea.asunto|default:"N/A" }}</p>
+        </div>
+        
+        {# Checkbox de completado al final o en una sección aparte si no encaja en el grid #}
+        <div class="detail-item complete-task-control">
+            <input type="checkbox" id="complete_task_checkbox" data-tarea-id="{{ tarea.pk }}"
+                    {% if tarea.estado == 'Completada' %}checked{% endif %}
+                    title="Marcar como Completada/Incompleta">
+            <label for="complete_task_checkbox">Marcar como Completada</label>
+        </div>
+    </div>
+
+    <div class="button-group">
+        {% if tarea.estado != 'Completada' %}
+            {# Botón Editar: Usamos btn-primary para el azul principal #}
+            <a href="{% url 'editar_tarea' tarea.pk %}" class="btn btn-primary">✏️ Editar Tarea</a>
+            {# Botón Archivar: Mantenemos btn-danger (rojo) para acciones de "riesgo" #}
+            <form action="{% url 'eliminar_tarea' tarea.pk %}" method="post" style="display:inline;" onsubmit="return confirm('¿Estás seguro de que quieres archivar esta tarea?');">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-danger">🗑️ Archivar Tarea</button>
+            </form>
+        {% else %}
+            {# Botones deshabilitados: Usamos btn-secondary (gris oscuro) para que se vean neutrales e inactivos. #}
+            <span class="btn btn-secondary disabled-btn" title="Tarea Completada - No editable">🚫 Tarea Completada - No editable</span>
+            <span class="btn btn-secondary disabled-btn" title="Tarea Completada - No se puede archivar">🚫 Tarea Completada - No se puede archivar</span>
+        {% endif %}
+
+        {% if tarea.eliminado_logicamente %}
+            {# Botón Restaurar: Usamos btn-primary (tu azul principal) para una acción positiva #}
+            <form action="{% url 'restaurar_tarea' tarea.pk %}" method="post" style="display:inline;">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-primary">🔄 Restaurar Tarea</button>
+            </form>
+        {% endif %}
+        
+        {# Botón Volver a la Lista: Mantenemos btn-secondary (gris oscuro) #}
+        <a href="{% url 'lista_tareas' %}" class="btn btn-secondary">⬅️ Volver a la Lista</a>
+        
+        {# Nuevo Botón Imprimir: Usamos btn-secondary (gris oscuro) para una acción utilitaria #}
+        <button onclick="window.print()" class="btn btn-secondary">🖨️ Imprimir Tarea</button>
+    </div>
+
+    <div class="historial">
+        {# El título del historial se ajusta ya que solo contendrá notas de gestión #}
+        <h3>Historial de Notas de Gestión</h3>
+        {% if historial_eventos %}
+            {% for evento in historial_eventos %}
+                <div class="historial-item">
+                    <div class="historial-item-header">
+                        {# Usar el índice secuencial para el título #}
+                        <h4>Nota de Gestión #{{ forloop.counter }}</h4> {# Ajustado a 'Nota de Gestión' y usa forloop.counter directamente #}
+                        <span>{{ evento.fecha|date:"d/m/Y H:i" }}</span>
+                    </div>
+                    {# Aquí solo se mostrarán las notas, ya no hay tipo 'solicitud' #}
+                    <p><strong>Nota:</strong> {{ evento.objeto.nota_texto|default:"N/A" }}</p>
+                    {# El usuario de creación de la nota sí se mantiene #}
+                    <p><strong>Usuario:</strong> {{ evento.objeto.usuario_creacion.username|default:"N/A" }}</p>
+                </div>
+            {% endfor %}
+        {% else %}
+            <p class="no-history">No hay notas de gestión registradas para esta tarea.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Lógica para el checkbox de completada en el detalle de la tarea
+        const completeCheckboxDetalle = document.getElementById('complete_task_checkbox');
+        if (completeCheckboxDetalle) {
+            completeCheckboxDetalle.addEventListener('change', function() {
+                const tareaId = this.dataset.tareaId;
+                const isChecked = this.checked;
+
+                let confirmationMessage;
+                if (isChecked) {
+                    confirmationMessage = '¿Estás seguro de que quieres marcar esta tarea como COMPLETA? Una tarea completada no puede ser editada o archivada directamente.';
+                } else {
+                    confirmationMessage = '¿Estás seguro de que quieres desmarcar esta tarea como COMPLETA? Su estado cambiará a "En Proceso" y será editable/archivada de nuevo.';
+                }
+
+                if (confirm(confirmationMessage)) {
+                    // URL corregida a '/tareas/${tareaId}/toggle_completada/'
+                    fetch(`/tareas/${tareaId}/toggle_completada/`, { 
+                        method: 'POST',
+                        headers: {
+                            'X-CSRFToken': '{{ csrf_token }}',
+                            'X-Requested-With': 'XMLHttpRequest' // Aunque redirigiremos, es buena práctica mantenerlo para coherencia
+                        }
+                    })
+                    .then(response => {
+                        // Aquí, ya que el backend redirige si no es AJAX,
+                        // simplemente recargamos la página para ver los cambios de estado del botón.
+                        window.location.reload(); 
+                        return response.json(); // Intentamos parsear por si acaso, pero no lo usaremos directamente
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('Error de conexión al actualizar la tarea.');
+                        completeCheckboxDetalle.checked = !isChecked; // Revertir si hay error de conexión
+                    });
+                } else {
+                    completeCheckboxDetalle.checked = !isChecked;
+                }
+            });
+        }
+    });
+</script>
+{% endblock %}

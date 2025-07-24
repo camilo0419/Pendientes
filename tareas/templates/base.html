@@ -1,0 +1,55 @@
+{# tareas/templates/tareas/base.html #}
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Gestor de Tareas{% endblock %}</title>
+    {# Aquí es donde cargamos tu CSS externo #}
+    <link href="{% static 'css/style.css' %}" rel="stylesheet">
+    {% block extra_head %}{% endblock %} {# Para cualquier CSS adicional específico de una página #}
+</head>
+<body>
+    <header>
+        <nav>
+            <div class="logo">
+                <a href="{% url 'lista_tareas' %}" class="logo-link">
+                    <img src="{% static 'img/as_logo.png' %}" alt="####">
+                    <span>####</span>
+                </a>
+            </div>
+            {# ELIMINAMOS EL UL AQUÍ Y PONEMOS LOS LI DIRECTAMENTE EN EL NAV #}
+            <a href="{% url 'lista_tareas' %}" class="nav-link-item">Tareas</a> {# <-- AÑADIMOS CLASE nav-link-item #}
+            {% if user.is_authenticated %}
+                <form action="{% url 'logout' %}" method="post" style="display: inline;" class="logout-form"> {# <-- AÑADIMOS CLASE logout-form #}
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-link nav-link">Cerrar Sesión ({{ user.username }})</button>
+                </form>
+            {% else %}
+                <a href="{% url 'login' %}" class="nav-link-item">Iniciar Sesión</a> {# <-- AÑADIMOS CLASE nav-link-item #}
+            {% endif %}
+        </nav>
+    </header>
+
+    <main>
+        {# Sección para mostrar los mensajes de Django #}
+        {% if messages %}
+            <ul class="messages container"> {# Añadido 'container' para que los mensajes también hereden el ancho y centrado #}
+                {% for message in messages %}
+                    <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+
+        {% block content %}
+        {% endblock %}
+    </main>
+
+    <footer>
+        <p>&copy; 2025 A&S Seguro y bien hecho. Todos los derechos reservados.</p>
+    </footer>
+
+    {% block extra_js %}{% endblock %} {# Para cualquier JavaScript adicional específico de una página #}
+</body>
+</html>
